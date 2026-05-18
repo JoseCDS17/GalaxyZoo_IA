@@ -9,5 +9,8 @@ wheels/
 # Virtual environments
 .venv
 pyproject.toml
-
+uv.lock
 .vscode
+
+#Scripts
+instructions.ipynb
