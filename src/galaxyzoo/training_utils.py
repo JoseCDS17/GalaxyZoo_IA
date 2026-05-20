@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import Literal
 
 import torch
 from torch import nn
@@ -11,6 +12,7 @@ def perform_train_loop(
     loss_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     optimizer: Optimizer,
     train_loader: DataLoader,
+    task: Literal["classification", "regression"] = "classification"
 ) -> tuple[float, list[int], list[int]]:
     """Utility function to perform a training loop.
 
@@ -40,7 +42,10 @@ def perform_train_loop(
         optimizer.step()
 
         # Save the predictions and targets
-        predictions += pred.argmax(dim=1).tolist()
+        if task == "classification":
+            predictions += pred.argmax(dim=1).tolist()
+        else:
+            predictions += pred.tolist()
         targets += y.tolist()
 
     return total_loss, predictions, targets
@@ -50,6 +55,7 @@ def perform_validation_loop(
     model: nn.Module,
     loss_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     validation_loader: DataLoader,
+    task: Literal["classification", "regression"] = "classification"
 ) -> tuple[float, list[int], list[int]]:
     """Utility function to perform a validation loop.
 
@@ -71,7 +77,10 @@ def perform_validation_loop(
             pred = model(X)
             loss = loss_fn(pred, y)
             total_loss += loss.item()
-            predictions += pred.argmax(dim=1).tolist()
+            if task == "classification":
+                predictions += pred.argmax(dim=1).tolist()
+            else:
+                predictions += pred.tolist()
             targets += y.tolist()
 
     return total_loss, predictions, targets
@@ -148,13 +157,16 @@ def fit(
     if include_accuracy:
         train_accuracies = []
         val_accuracies = []
+        classification = True
+    else:
+        classification = False
 
     for epoch in range(epochs):
         train_loss, train_predictions, train_targets = perform_train_loop(
-            model, loss_function, optimizer, train_loader
+            model, loss_function, optimizer, train_loader, classification
         )
         val_loss, val_predictions, val_targets = perform_validation_loop(
-            model, loss_function, validation_loader
+            model, loss_function, validation_loader, classification
         )
 
         train_losses.append(train_loss / len(train_loader))

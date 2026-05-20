@@ -101,6 +101,7 @@ class CNN(nn.Module):
         final_hidden_channels: int = 64,
         activation: Literal["relu", "sigmoid", "tanh"] = "relu",
         n_blocks: int = 3,
+        task: Literal["classification", "regression"] = "classification"
     ):
         super().__init__()
 
@@ -109,7 +110,7 @@ class CNN(nn.Module):
         )
 
         # After our CNN blocks we will be flattening
-        self.mlp_model = nn.Sequential(
+        mlp_layers =  [
             nn.Flatten(),
             nn.Linear(
                 product(cnn_output_shape) * cnn_output_channels,
@@ -117,7 +118,12 @@ class CNN(nn.Module):
             ),
             get_activation(activation),
             nn.Linear(final_hidden_channels, out_channels),
-        )
+        ]
+
+        if task == "regression":
+            mlp_layers.append(nn.Sigmoid())
+
+        self.mlp_model = nn.Sequential(*mlp_layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.mlp_model(self.cnn_blocks(x))
