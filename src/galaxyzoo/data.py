@@ -14,13 +14,17 @@ def load_data(img_path: Path, labels_path: Path, task: Literal["task1", "task2",
     raw_labels = pandas.read_csv(labels_path)
     if task == "task1":
         #obtaining only the relevant labels
-        labels = raw_labels.iloc[:,1:4]
+        labels = raw_labels[['Class1.1','Class1.2', 'Class1.3']]
         labels_numpy = labels.to_numpy()
         labels_out = labels_numpy.argmax(axis=1) #we want the most voted answer
-
     elif task == "task2":
         #obtaining only the relevant labels
-        labels = raw_labels.iloc[:,4:6]
+        labels = raw_labels[['Class2.1','Class2.2', 'Class7.1','Class7.2','Class7.3']]
+        labels_out = labels.to_numpy()
+    elif task == "task3":
+        #obtaining only the relevant labels
+        labels = raw_labels[['Class6.1','Class6.2', 
+                             'Class8.1','Class8.2','Class8.3','Class8.4','Class8.5','Class8.6','Class8.7']]
         labels_out = labels.to_numpy()
 
     #obtaining the set of images
