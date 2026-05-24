@@ -157,16 +157,16 @@ def fit(
     if include_accuracy:
         train_accuracies = []
         val_accuracies = []
-        classification = True
+        task = "classification"
     else:
-        classification = False
+        task = "regression"
 
     for epoch in range(epochs):
         train_loss, train_predictions, train_targets = perform_train_loop(
-            model, loss_function, optimizer, train_loader, classification
+            model, loss_function, optimizer, train_loader, task=task
         )
         val_loss, val_predictions, val_targets = perform_validation_loop(
-            model, loss_function, validation_loader, classification
+            model, loss_function, validation_loader, task=task
         )
 
         train_losses.append(train_loss / len(train_loader))
