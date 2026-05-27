@@ -110,6 +110,7 @@ def print_log(
     val_loss: float,
     train_accuracy: float,
     val_accuracy: float,
+    lr: float,
     train_loader: DataLoader,
     validation_loader: DataLoader,
     epoch: int,
@@ -120,10 +121,11 @@ def print_log(
     val_loss_str = f"Validation loss: {val_loss_avg:.4f}"
     train_accuracy_str = f"Train accuracy: {train_accuracy * 100:.2f}%"
     val_accuracy_str = f"Validation accuracy: {val_accuracy * 100:.2f}%"
+    lr_str = f"Learning rate: {lr:.2e}"
     epoch_str = f"Epoch {epoch + 1}"
 
     print_box(
-        epoch_str, train_loss_str, val_loss_str, train_accuracy_str, val_accuracy_str
+        epoch_str, train_loss_str, val_loss_str, train_accuracy_str, val_accuracy_str, lr_str
     )
 
 
@@ -135,6 +137,7 @@ def fit(
     train_loader: DataLoader,
     validation_loader: DataLoader,
     include_accuracy: bool = True,
+    scheduler = None,
     task: Literal["classification", "binary_class", "regression"] = "classification"
 ) -> tuple[list[float], list[float], list[float], list[float]]:
     """Utility function to fit a model to the training data and evaluate it on the validation data.
@@ -162,8 +165,15 @@ def fit(
             model, loss_function, validation_loader, task=task
         )
 
-        train_losses.append(train_loss / len(train_loader))
-        val_losses.append(val_loss / len(validation_loader))
+        train_loss_avg = train_loss / len(train_loader)
+        val_loss_avg = val_loss / len(validation_loader)
+
+        train_losses.append(train_loss_avg)
+        val_losses.append(val_loss_avg)
+
+        if scheduler is not None:
+            scheduler.step(val_loss_avg)
+
         if include_accuracy:
             train_accuracy = sum(
                 [1 for i, j in zip(train_predictions, train_targets) if i == j]
@@ -180,6 +190,7 @@ def fit(
                 val_loss,
                 train_accuracy,
                 val_accuracy,
+                optimizer.param_groups[0]["lr"],
                 train_loader,
                 validation_loader,
                 epoch,
