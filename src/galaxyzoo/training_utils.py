@@ -12,7 +12,7 @@ def perform_train_loop(
     loss_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     optimizer: Optimizer,
     train_loader: DataLoader,
-    task: Literal["classification", "regression"] = "classification"
+    task: Literal["classification", "binary_class", "regression"]
 ) -> tuple[float, list[int], list[int]]:
     """Utility function to perform a training loop.
 
@@ -31,7 +31,10 @@ def perform_train_loop(
     total_loss = 0.0
     for X, y in train_loader:
         # Compute prediction and loss
-        pred = model(X)
+        if task == "binary_class":
+            pred = model(X).flatten()  
+        else:  
+            pred = model(X)
         loss = loss_fn(pred, y)
 
         total_loss += loss.item()
@@ -44,6 +47,8 @@ def perform_train_loop(
         # Save the predictions and targets
         if task == "classification":
             predictions += pred.argmax(dim=1).tolist()
+        elif task == "binary_class":
+            predictions += torch.sigmoid(pred).tolist()
         else:
             predictions += pred.tolist()
         targets += y.tolist()
@@ -55,7 +60,7 @@ def perform_validation_loop(
     model: nn.Module,
     loss_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     validation_loader: DataLoader,
-    task: Literal["classification", "regression"] = "classification"
+    task: Literal["classification", "binary_class", "regression"]
 ) -> tuple[float, list[int], list[int]]:
     """Utility function to perform a validation loop.
 
@@ -74,11 +79,17 @@ def perform_validation_loop(
         torch.no_grad()
     ):  # No need to store the computation graph, since we're not using it for autograd.
         for X, y in validation_loader:
-            pred = model(X)
+            if task == "binary_class":
+                pred = model(X).flatten()
+            else:
+                pred = model(X)
             loss = loss_fn(pred, y)
             total_loss += loss.item()
+
             if task == "classification":
                 predictions += pred.argmax(dim=1).tolist()
+            elif task == "binary_class":
+                predictions += torch.sigmoid(pred).tolist()
             else:
                 predictions += pred.tolist()
             targets += y.tolist()
@@ -87,11 +98,6 @@ def perform_validation_loop(
 
 
 def print_box(*strings: str):
-    """Utility function to print a box around the provided strings.
-
-    Args:
-        *strings: The strings to print inside the box.
-    """
     max_length = max(map(len, strings))
     print("-" * (max_length + 4))
     for string in strings:
@@ -108,17 +114,6 @@ def print_log(
     validation_loader: DataLoader,
     epoch: int,
 ):
-    """Utility function to print the training and validation loss and accuracy in a nice format.
-
-    Args:
-        train_loss: The total training loss for the epoch.
-        val_loss: The total validation loss for the epoch.
-        train_accuracy: The training accuracy for the epoch.
-        val_accuracy: The validation accuracy for the epoch.
-        train_loader: The DataLoader used for training, used to compute the average loss.
-        validation_loader: The DataLoader used for validation, used to compute the average loss.
-        epoch: The current epoch number, used for logging.
-    """
     train_loss_avg = train_loss / len(train_loader)
     val_loss_avg = val_loss / len(validation_loader)
     train_loss_str = f"Train loss: {train_loss_avg:.4f}"
@@ -140,6 +135,7 @@ def fit(
     train_loader: DataLoader,
     validation_loader: DataLoader,
     include_accuracy: bool = True,
+    task: Literal["classification", "binary_class", "regression"] = "classification"
 ) -> tuple[list[float], list[float], list[float], list[float]]:
     """Utility function to fit a model to the training data and evaluate it on the validation data.
 
@@ -157,9 +153,6 @@ def fit(
     if include_accuracy:
         train_accuracies = []
         val_accuracies = []
-        task = "classification"
-    else:
-        task = "regression"
 
     for epoch in range(epochs):
         train_loss, train_predictions, train_targets = perform_train_loop(

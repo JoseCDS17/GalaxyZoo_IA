@@ -16,10 +16,6 @@ def get_activation(
 
     raise ValueError(f"Unknown activation function: {activation}")
 
-# We will here show another benefit of structuring your Neural Network in a modular way.
-# First we will make a component which we can reuse in the network.
-
-
 def product(integers: tuple[int, ...]) -> int:
     result = 1
     for element in integers:
@@ -27,7 +23,7 @@ def product(integers: tuple[int, ...]) -> int:
     return result
 
 
-class DoubleConvolutionBlock(nn.Module):  # Remember to always inherit from nn.Module
+class DoubleConvolutionBlock(nn.Module): 
     def __init__(
         self,
         in_channels: int,
@@ -62,33 +58,42 @@ class DoubleConvolutionBlock(nn.Module):  # Remember to always inherit from nn.M
         self.conv1 = nn.Conv2d(
             in_channels, hidden_channels, kernel_size=kernel_size, padding=padding_size
         )
+        self.bn1 = nn.BatchNorm2d(
+            hidden_channels
+        )
         self.conv2 = nn.Conv2d(
             hidden_channels, out_channels, kernel_size=kernel_size, padding=padding_size
+        )
+        self.bn2 = nn.BatchNorm2d(
+            out_channels
         )
         self.activation = (
             get_activation(activation) if activation is not None else nn.ReLU()
         )
-        self.add_residual = (
-            add_residual and (in_channels == out_channels) and maintain_size
-        )
+        if add_residual and maintain_size:
+            if in_channels != out_channels:
+                self.residual_projection = nn.Conv2d(
+                    in_channels,
+                    out_channels,
+                    kernel_size=1
+                )
+            else:
+                self.residual_projection = nn.Identity()
+        else:
+            self.residual_projection = None
 
     def forward(self, x: torch.Tensor):
-        out1 = self.activation(self.conv1(x))
-        out2 = self.activation(self.conv2(out1))
+        out1 = self.activation(
+            self.bn1(self.conv1(x))
+        )
+        out2 = self.bn2(self.conv2(out1))
 
-        # Another benefit of classes is that we can add more logic to the forward pass.
-        # Here we used what is known as a residual connection (skip-connection),
-        # which are essential for training large modern networks.
-        if self.add_residual:
-            return out2 + x
-        return out2
-
-
-# When creating convolutional neural networks, it is a good idea to keep track of the shape of the data as it passes through the network.
-# This website: https://asiltureli.github.io/Convolution-Layer-Calculator/ for calculating the shape of the data after each layer.
-# In this neural network we will use a kernel size of 3x3 and a padding of 1 to keep the size of the image the same.
-# This means it is only the down-pooling layers which change the shape of the data.
-
+        #residual connection, used in modern networks.
+        if self.residual_projection is not None:
+            return out2 + self.residual_projection(x)
+        
+        return self.activation(out2)
+    
 
 # Now we can use this block to create a CNN
 class CNN(nn.Module):
@@ -111,11 +116,9 @@ class CNN(nn.Module):
 
         # After our CNN blocks we will be flattening
         mlp_layers =  [
+            nn.AdaptiveAvgPool2d((1,1)), #for reducing our parameters
             nn.Flatten(),
-            nn.Linear(
-                product(cnn_output_shape) * cnn_output_channels,
-                final_hidden_channels,
-            ),
+            nn.Linear(cnn_output_channels,final_hidden_channels),
             get_activation(activation),
             nn.Linear(final_hidden_channels, out_channels),
         ]
@@ -128,8 +131,6 @@ class CNN(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.mlp_model(self.cnn_blocks(x))
 
-    # In Python, it is customary to prefix "private" methods with a single underscore.
-    # This means, that this function should not be called from outside the class.
     def _build_cnn(
         self,
         hidden_channels: int,
@@ -140,28 +141,23 @@ class CNN(nn.Module):
         cnn_layers = []
         current_channels = in_channels
         shape = input_shape
-        # Nothing prevents you from manually adding layers to nn.Sequential,
-        # but if you want the depths to be configurable it is easier to use a loop to add the layers.
-        # We first add all our layers to a list, and then we use python unpacking (* operator) to insert them into the nn.Sequential.
-        for _ in range(n_blocks):
-            # We would get an error if we try to use a kernel size that is larger than our image size,
-            # so we would rather catch that error now instead of having to debug it later :).
+    
+        for i in range(n_blocks):
+            # We would get an error if we try to use a kernel size that is larger than our image size
             if any(dimension < 3 for dimension in shape):
                 raise ValueError(
                     "Dimensions of input tensor must be at least 3 for convolutional layers."
                 )
+            
+            out_channels = hidden_channels * (2**i)
+
             cnn_layers.append(
-                DoubleConvolutionBlock(current_channels, hidden_channels)
-            )  # Preserves shape
-            current_channels = hidden_channels
-            cnn_layers.append(nn.AvgPool2d(kernel_size=(2, 2)))  # Halves shape
+                DoubleConvolutionBlock(current_channels, out_channels)
+            ) 
+            current_channels = out_channels
+            cnn_layers.append(nn.MaxPool2d(kernel_size=(2, 2))) 
             shape = tuple(dimension // 2 for dimension in shape)
 
-        # The CNN components of our network. Designed to learn meaningful features.
         self.cnn_blocks = nn.Sequential(*cnn_layers)
 
-        # Try to print out the layers of the CNN components using
-        # m = CNN(some_parameters)
-        # print(m.cnn_blocks)
-        # Do you understand the
         return shape, current_channels

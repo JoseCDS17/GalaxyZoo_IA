@@ -16,7 +16,7 @@ def load_data(img_path: Path, labels_path: Path, task: Literal["task1", "task2",
         #obtaining only the relevant labels
         labels = raw_labels[['Class1.1','Class1.2', 'Class1.3']]
         labels_numpy = labels.to_numpy()
-        labels_out = labels_numpy.argmax(axis=1) #we want the most voted answer
+        labels_out = labels_numpy.argmax(axis=1) #for classification, we want only the most voted answer
     elif task == "task2":
         #obtaining only the relevant labels
         labels = raw_labels[['Class2.1','Class2.2', 'Class7.1','Class7.2','Class7.3']]
@@ -38,7 +38,7 @@ def load_data(img_path: Path, labels_path: Path, task: Literal["task1", "task2",
 
 class GalaxiesDataset(Dataset):
     def __init__(self, image_paths: Path, labels: ndarray, transform=None, 
-                 task: Literal["classification", "regression"] = "classification"):
+                 task: Literal["classification", "binary_class", "regression"] = "classification"):
         self.image_paths = image_paths
         self.labels = labels
         self.transform = transform
