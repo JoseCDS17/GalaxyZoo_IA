@@ -48,7 +48,7 @@ def perform_train_loop(
         if task == "classification":
             predictions += pred.argmax(dim=1).tolist()
         elif task == "binary_class":
-            predictions += torch.sigmoid(pred).tolist()
+            predictions += (pred > 0).int().tolist()
         else:
             predictions += pred.tolist()
         targets += y.tolist()
@@ -89,7 +89,7 @@ def perform_validation_loop(
             if task == "classification":
                 predictions += pred.argmax(dim=1).tolist()
             elif task == "binary_class":
-                predictions += torch.sigmoid(pred).tolist()
+                predictions += (pred > 0).int().tolist()
             else:
                 predictions += pred.tolist()
             targets += y.tolist()
@@ -200,6 +200,8 @@ def fit(
                 f"Epoch {epoch + 1}",
                 f"Train loss: {train_loss / len(train_loader)}",
                 f"Validation loss: {val_loss / len(validation_loader)}",
+                f"Learning rate: {optimizer.param_groups[0]["lr"]:.2e}"
+                ,
             )
     if include_accuracy:
         return train_losses, val_losses, train_accuracies, val_accuracies

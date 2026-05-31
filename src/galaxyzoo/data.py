@@ -10,13 +10,21 @@ import torch
 from torch.utils.data import Dataset
 from PIL import Image
 
-def load_data(img_path: Path, labels_path: Path, task: Literal["task1", "task2", "task3"]):
+def load_data(img_path: Path, labels_path: Path, 
+              task: Literal["task1", "task2", "task3"], binary: bool = False):
     raw_labels = pandas.read_csv(labels_path)
     if task == "task1":
         #obtaining only the relevant labels
         labels = raw_labels[['Class1.1','Class1.2', 'Class1.3']]
         labels_numpy = labels.to_numpy()
-        labels_out = labels_numpy.argmax(axis=1) #for classification, we want only the most voted answer
+        if not binary: 
+            labels_out = labels_numpy.argmax(axis=1) #for classification, we want only the most voted answer
+        elif binary:
+            labels_class = labels_numpy.argmax(axis=1)
+            confidence = labels_numpy.max(axis=1)
+
+            mask = (labels_class != 2) & (confidence > 0.75) #we want only classs 1.1 and 1.2, and we want a confidence of 75% on the answer
+            labels_out = labels_class[mask]
     elif task == "task2":
         #obtaining only the relevant labels
         labels = raw_labels[['Class2.1','Class2.2', 'Class7.1','Class7.2','Class7.3']]
@@ -33,6 +41,8 @@ def load_data(img_path: Path, labels_path: Path, task: Literal["task1", "task2",
         os.path.join(img_path, str(name)+'.jpg')
         for name in raw_labels['GalaxyID']
     ]
+    if binary:
+        image_paths = np.array(image_paths)[mask]
 
     return image_paths, labels_out
 
