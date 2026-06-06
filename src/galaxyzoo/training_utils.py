@@ -26,6 +26,7 @@ def perform_train_loop(
         A tuple containing the total loss, predictions, and targets for the training loop.
 
     """
+    model.train()
     predictions = []
     targets = []
     total_loss = 0.0
@@ -72,6 +73,7 @@ def perform_validation_loop(
     Returns:
         A tuple containing the total loss, predictions, and targets for the validation loop.
     """
+    model.eval()
     predictions = []
     targets = []
     total_loss = 0.0

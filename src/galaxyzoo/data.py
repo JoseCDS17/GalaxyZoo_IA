@@ -30,10 +30,11 @@ def load_data(img_path: Path, labels_path: Path,
         labels = raw_labels[['Class2.1','Class2.2', 'Class7.1','Class7.2','Class7.3']]
         labels_out = labels.to_numpy()
     elif task == "task3":
-        #obtaining only the relevant labels
-        labels = raw_labels[['Class2.1','Class2.2','Class6.1','Class6.2', 
+        #obtaining only the relevant labels; Class1.1 appended last as auxiliary for hierarchical constraints
+        labels = raw_labels[['Class2.1','Class2.2','Class6.1','Class6.2',
                              'Class7.1','Class7.2','Class7.3',
-                             'Class8.1','Class8.2','Class8.3','Class8.4','Class8.5','Class8.6','Class8.7']]
+                             'Class8.1','Class8.2','Class8.3','Class8.4','Class8.5','Class8.6','Class8.7',
+                             'Class1.1']]
         labels_out = labels.to_numpy()
 
     #obtaining the set of images
