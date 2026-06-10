@@ -13,36 +13,38 @@ from PIL import Image
 def load_data(img_path: Path, labels_path: Path, 
               task: Literal["task1", "task2", "task3"], binary: bool = False):
     raw_labels = pandas.read_csv(labels_path)
-    if task == "task1":
-        #obtaining only the relevant labels
+
+    """Label extraction based on the needed task."""
+    if task == "task1": # only Class1 (classification task)
         labels = raw_labels[['Class1.1','Class1.2', 'Class1.3']]
         labels_numpy = labels.to_numpy()
         if not binary: 
-            labels_out = labels_numpy.argmax(axis=1) #for classification, we want only the most voted answer
+            labels_out = labels_numpy.argmax(axis=1) # only the most voted answer
         elif binary:
             labels_class = labels_numpy.argmax(axis=1)
             confidence = labels_numpy.max(axis=1)
 
-            mask = (labels_class != 2) & (confidence > 0.75) #we want only classs 1.1 and 1.2, and we want a confidence of 75% on the answer
+            # Just Classs1.1 and 1.2, with a confidence of 75% on the answer
+            mask = (labels_class != 2) & (confidence > 0.75)
             labels_out = labels_class[mask]
-    elif task == "task2":
-        #obtaining only the relevant labels
-        labels = raw_labels[['Class2.1','Class2.2', 'Class7.1','Class7.2','Class7.3']]
+    elif task == "task2": # only Class2 and Class7 (regression task)
+        labels = raw_labels[['Class2.1','Class2.2', 
+                             'Class7.1','Class7.2','Class7.3']]
         labels_out = labels.to_numpy()
-    elif task == "task3":
-        #obtaining only the relevant labels; Class1.1 appended last as auxiliary for hierarchical constraints
-        labels = raw_labels[['Class2.1','Class2.2','Class6.1','Class6.2',
+    elif task == "task3": # Class2, Class6, Class7 and Class8 (regression task)
+        labels = raw_labels[['Class2.1','Class2.2',
+                             'Class6.1','Class6.2',
                              'Class7.1','Class7.2','Class7.3',
                              'Class8.1','Class8.2','Class8.3','Class8.4','Class8.5','Class8.6','Class8.7',
                              'Class1.1']]
         labels_out = labels.to_numpy()
 
-    #obtaining the set of images
+    # Obtain the set of images
     image_paths = [
         os.path.join(img_path, str(name)+'.jpg')
         for name in raw_labels['GalaxyID']
     ]
-    if binary:
+    if binary: # add a mask for the binary classification
         image_paths = np.array(image_paths)[mask]
 
     return image_paths, labels_out
@@ -66,7 +68,7 @@ class GalaxiesDataset(Dataset):
 
         if self.task == "classification":
             label = torch.tensor(self.labels[idx], dtype=torch.long)
-        else:
+        else: # regression
             label = torch.tensor(self.labels[idx], dtype=torch.float32)
 
         return img, label

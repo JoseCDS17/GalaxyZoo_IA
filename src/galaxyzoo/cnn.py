@@ -49,7 +49,7 @@ class DoubleConvolutionBlock(nn.Module):
         super().__init__()
 
         # Compute needed values
-        # Adding this padding size, means that our convolutional layers preserve the image shape.
+        # Adding this padding size, means that the convolutional layers preserve the image shape.
         padding_size = kernel_size // 2 if maintain_size else 0
         hidden_channels = (
             hidden_channels if hidden_channels is not None else out_channels
@@ -88,14 +88,12 @@ class DoubleConvolutionBlock(nn.Module):
         )
         out2 = self.bn2(self.conv2(out1))
 
-        #residual connection, used in modern networks.
+        # Residual connection, used in modern networks.
         if self.residual_projection is not None:
             return out2 + self.residual_projection(x)
         
         return self.activation(out2)
     
-
-# Now we can use this block to create a CNN
 class CNN(nn.Module):
     def __init__(
         self,
@@ -116,13 +114,14 @@ class CNN(nn.Module):
 
         # After our CNN blocks we will be flattening
         mlp_layers =  [
-            nn.AdaptiveAvgPool2d((1,1)), #for reducing our parameters
+            nn.AdaptiveAvgPool2d((1,1)), # for reducing our parameters
             nn.Flatten(),
             nn.Linear(cnn_output_channels,final_hidden_channels),
             get_activation(activation),
             nn.Linear(final_hidden_channels, out_channels),
         ]
 
+        # Add a sigmoid for regression as the output has to be between 0 and 1
         if task == "regression":
             mlp_layers.append(nn.Sigmoid())
 
