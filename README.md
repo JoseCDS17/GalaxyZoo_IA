@@ -1,6 +1,6 @@
 # Galaxy Zoo — CNN-based Galaxy Classification and Regression
 
-This project applies Convolutional Neural Networks (CNNs) to the [Galaxy Zoo 2](https://www.kaggle.com/competitions/galaxy-zoo-the-galaxy-challenge) dataset, in which citizen scientists classified galaxy morphology through an online survey. The goal is to predict both discrete morphological classes and continuous vote fractions from galaxy images, replicating and extending the original Kaggle challenge.
+This repository contains the code and numerical notebooks developed for the course Physics Applications of AI of the Master in Cosmology and Astroparticles Physics, University of Geneva. This project applies Convolutional Neural Networks (CNNs) to the [Galaxy Zoo](https://www.kaggle.com/competitions/galaxy-zoo-the-galaxy-challenge) dataset, in which citizen scientists classified galaxy morphology through an online survey. The goal is to predict both discrete morphological classes and continuous vote fractions from galaxy images, replicating and extending the original Kaggle challenge.
 
 The dataset consists of ~61,000 SDSS galaxy images (424×424 px, RGB) paired with crowd-sourced vote fractions across a hierarchical decision tree of morphological questions.
 
@@ -53,8 +53,8 @@ Defines the CNN architecture used across all tasks.
 Classifies each galaxy into one of three morphological categories: **Smooth**, **Disk**, or **Artifact**, based on the Q1 vote fractions (`Class1.1`, `Class1.2`, `Class1.3`).
 
 - Loss: `CrossEntropyLoss` with class weights computed from the training set to handle class imbalance.
-- Evaluation: confusion matrix, ROC curves (one-vs-rest), test accuracy.
-- Final result: ~84% training accuracy, ~84% test accuracy (25 epochs).
+- Evaluation: confusion matrix, ROC curves (one-vs-rest), test accuracy with misclassified examples.
+- Final result: ~85% training accuracy, ~85% test accuracy (25 epochs).
 
 ### Task 1.2 — Binary Classification
 
@@ -62,7 +62,7 @@ Restricts to galaxies where the dominant Q1 vote exceeds 75% confidence and the 
 
 - Loss: `BCEWithLogitsLoss`.
 - Evaluation: confusion matrix, ROC curve.
-- Final result: ~90% test accuracy (20 epochs).
+- Final result: ~95% test accuracy (20 epochs).
 
 ### Task 2 — Regression (5 outputs)
 
@@ -74,7 +74,7 @@ Predicts five continuous vote fractions simultaneously: `Class2.1`, `Class2.2`, 
 
 ### Task 3 — Regression (14 outputs) with Hierarchical Constraints
 
-Predicts 14 vote fractions spanning the Galaxy Zoo decision tree: Q2, Q6, Q7, Q8. The Galaxy Zoo survey is hierarchical — Q7 answers are only shown to respondents who chose Q1.1 (smooth), so the sum of Q7 fractions should equal the Q1.1 fraction; similarly, Q8 answers come from Q6.1 respondents.
+Predicts 14 vote fractions spanning the Galaxy Zoo decision tree: Q2, Q6, Q7, Q8. The Galaxy Zoo survey is hierarchical, which means that Q7 answers are only shown to respondents who chose Q1.1 (smooth), so the sum of Q7 fractions should equal the Q1.1 fraction; similarly, Q8 answers come from Q6.1 respondents.
 
 A custom loss function enforces these physical constraints:
 
@@ -84,7 +84,6 @@ loss = MSE + λ * (constraint_Q7 + constraint_Q8)
 
 where `constraint_Q7 = (sum(Q7 predictions) − Q1.1_true)²` and `constraint_Q8 = (sum(Q8 predictions) − Q6.1_true)²`. A value of `λ = 0.05` was found to balance constraint enforcement with raw MSE performance.
 
----
 
 ## Usage
 
@@ -105,22 +104,14 @@ pip install torch torchvision matplotlib numpy pandas kagglehub scikit-learn
 
 ### 2. Download the data
 
-The dataset can be downloaded from Kaggle. Place the images under `data/images/` and the labels file at `data/labels.csv`.
+The data is already included in the repository under `data/images/` (galaxy images) and `data/labels.csv` (vote fractions). No additional download is required.
 
-```python
-import kagglehub
-kagglehub.dataset_download("...")
-```
+If the data directory is missing, the dataset can be obtained from Kaggle and placed in the same structure.
 
 ### 3. Run the notebooks
 
 Open any of the task notebooks in JupyterLab or VS Code and run all cells in order. Each notebook is self-contained: it loads data, trains the model, and evaluates results.
 
-```bash
-jupyter lab
-```
-
----
 
 ## Dependencies
 
@@ -136,3 +127,7 @@ jupyter lab
 | `Pillow` | — | Image loading |
 
 Python ≥ 3.14 required.
+
+## Author
+
+Developed by Jose Carlos Díaz Sierra for the Physics Applications of AI course, as part of Master in Cosmology and Astroparticles Physics at University of Geneva.
