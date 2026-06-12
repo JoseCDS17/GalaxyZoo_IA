@@ -4,7 +4,6 @@ This repository contains the code and numerical notebooks developed for the cour
 
 The dataset consists of ~61,000 SDSS galaxy images (424×424 px, RGB) paired with crowd-sourced vote fractions across a hierarchical decision tree of morphological questions.
 
----
 
 ## Project Structure
 
@@ -23,7 +22,6 @@ galaxyzoo/
 └── task3.ipynb          # Regression (14 outputs)
 ```
 
----
 
 ## Modules
 
@@ -44,7 +42,6 @@ Defines the CNN architecture used across all tasks.
 - **`perform_train_loop`** / **`perform_validation_loop`**: single-epoch loops that set `model.train()` / `model.eval()` appropriately (critical for BatchNorm behaviour). Binary classification predictions are obtained via `.flatten()` to match the 1D label shape expected by `BCEWithLogitsLoss`.
 - **`fit`**: full training loop over `epochs`, calling both loops, stepping the scheduler on validation loss, and optionally logging accuracy.
 
----
 
 ## Tasks
 
